@@ -26,7 +26,8 @@ RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 OID_DIR.mkdir(parents=True, exist_ok=True)
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
-DATASET_NAME = "open-images-v6"
+DATASET_NAME_TRAIN = "open-images-v6-train"
+DATASET_NAME_TEST  = "open-images-v6-test"
 fo.config.dataset_zoo_dir = str(OID_DIR)
 
 # Classes with near-zero co-occurrence with cars (indoor / nature subjects)
@@ -84,14 +85,14 @@ def load_dataset(is_test: bool) -> fo.Dataset:
         A persistent FiftyOne Dataset with ground_truth detections attached.
     """
     max_samples = TARGET_COUNT if is_test else TARGET_COUNT * 2
-    print(f"Loading data …")
+    print(f"---------- LOADING DATA ----------")
     dataset = foz.load_zoo_dataset(
         "open-images-v6",
         split="test" if is_test else "train",
         label_types=["detections"],
         classes=CLASSES,
         max_samples=max_samples,
-        dataset_name=DATASET_NAME,
+        dataset_name=DATASET_NAME_TEST if is_test else DATASET_NAME_TRAIN,
     )
 
     with_cars = sum(
@@ -99,8 +100,20 @@ def load_dataset(is_test: bool) -> fo.Dataset:
         if (gt := getattr(s, "ground_truth", None)) and any(d.label == "Car" for d in gt.detections)
     )
     print(f"# CARS: {with_cars} | # NO CARS: {len(dataset) - with_cars}")
+    print(f"----------------------------------")
 
     return dataset
+
+
+def get_samples(is_test: bool) -> list[tuple[Path, int]]:
+    """Return (image_path, label) for every sample. label=1 if car, 0 otherwise."""
+    dataset = load_dataset(is_test=is_test)
+    samples = []
+    for s in dataset:
+        gts = getattr(s, "ground_truth", None)
+        has_car = gts is not None and any(d.label == "Car" for d in gts.detections)
+        samples.append((Path(s.filepath), int(has_car)))
+    return samples
 
 
 def main():
