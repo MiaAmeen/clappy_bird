@@ -51,6 +51,12 @@ def draw_boxes(img: Image.Image, boxes: list[list[float]]) -> Image.Image:
 
 
 def make_preview_grid(annotated: list[Image.Image], save_path: Path):
+    """Tile a list of annotated images into a grid and save it as a JPEG.
+
+    Args:
+        annotated: Images already drawn with bounding boxes.
+        save_path: Output path for the grid JPEG.
+    """
     thumbs = [img.resize((PREVIEW_THUMB, PREVIEW_THUMB)) for img in annotated]
     rows = (len(thumbs) + PREVIEW_COLS - 1) // PREVIEW_COLS
     grid = Image.new(
@@ -65,6 +71,18 @@ def make_preview_grid(annotated: list[Image.Image], save_path: Path):
 
 
 def load_dataset(is_test: bool) -> fo.Dataset:
+    """Download (or reload from cache) an Open Images v6 split via FiftyOne Zoo.
+
+    Selects CLASSES that cover urban scenes likely to contain cars, plus Car
+    itself.  Prints a class-balance summary after loading.
+
+    Args:
+        is_test: If True, loads the validation split (TARGET_COUNT samples).
+                 If False, loads the train split (TARGET_COUNT * 2 samples).
+
+    Returns:
+        A persistent FiftyOne Dataset with ground_truth detections attached.
+    """
     max_samples = TARGET_COUNT if is_test else TARGET_COUNT * 2
     print(f"Loading data …")
     dataset = foz.load_zoo_dataset(
@@ -86,6 +104,8 @@ def load_dataset(is_test: bool) -> fo.Dataset:
 
 
 def main():
+    """Load the training split, extract Car bounding boxes, and write a
+    bounding-box preview grid to PREVIEW_DIR."""
     dataset = load_dataset(is_test=False)
 
     print("Extracting Car bounding boxes ...")
