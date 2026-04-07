@@ -1,0 +1,4 @@
+fiftyone
+Pillow
+torch
+transformers
